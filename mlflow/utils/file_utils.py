@@ -1,14 +1,20 @@
 import codecs
 import gzip
 import os
+import posixpath
 import shutil
 import tarfile
 import tempfile
+
+
+from six.moves.urllib.request import pathname2url
+from six.moves import urllib
 
 import yaml
 
 from mlflow.entities import FileInfo
 from mlflow.exceptions import MissingConfigException
+import mlflow.tracking
 
 ENCODING = "utf-8"
 
@@ -23,11 +29,6 @@ def is_file(name):
 
 def exists(name):
     return os.path.exists(name)
-
-
-def build_path(*path_segments):
-    """ Returns the path formed by joining the passed-in path segments. """
-    return os.path.join(*path_segments)
 
 
 def list_all(root, filter_func=lambda x: True, full_path=False):
@@ -342,3 +343,22 @@ def _copy_file_or_tree(src, dst, dst_dir=None):
 
 def get_parent_dir(path):
     return os.path.abspath(os.path.join(path, os.pardir))
+
+
+def path_to_local_file_uri(path):
+    path = pathname2url(path)
+    if path == posixpath.abspath(path):
+        return "file://{path}".format(path=path)
+    else:
+        return "file:{path}".format(path=path)
+
+
+def local_file_uri_to_path(uri):
+    """
+    Convert file URI aor path to normalized path.
+
+    :param uri: File URI or path.
+    :return: Normalized path.
+    """
+    path = urllib.parse.urlparse(uri).path if uri.startswith("file:") else uri
+    return urllib.request.url2pathname(path)

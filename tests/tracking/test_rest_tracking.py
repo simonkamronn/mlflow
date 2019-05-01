@@ -12,11 +12,10 @@ import shutil
 import time
 import tempfile
 
-
 import mlflow.experiments
 from mlflow.entities import RunStatus, Metric, Param, RunTag
 from mlflow.protos.service_pb2 import LOCAL as SOURCE_TYPE_LOCAL
-from mlflow.server import app, BACKEND_STORE_URI_ENV_VAR, ARTIFACT_ROOT_ENV_VAR
+from mlflow.server import REL_STATIC_DIR, BACKEND_STORE_URI_ENV_VAR, ARTIFACT_ROOT_ENV_VAR
 from mlflow.tracking import MlflowClient
 from mlflow.tracking.utils import _tracking_store_registry
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME, MLFLOW_PARENT_RUN_ID, MLFLOW_SOURCE_TYPE, \
@@ -57,6 +56,18 @@ def _await_server_down_or_die(process, timeout=60):
         raise Exception('Server failed to shutdown after %s seconds' % timeout)
 
 
+class App(object):
+    def __init__(self, hostname, port, flask_args):
+        self._hostname = hostname
+        self._port = port
+        self._flask_args = flask_args
+
+    def __call__(self):
+        from flask import Flask, send_from_directory
+        self.app = Flask(**self._flask_args)
+        self.app.run(self._hostname, self._port)
+
+
 def _init_server(backend_uri, root_artifact_uri):
     """
     Launch a new REST server using the tracking store specified by backend_uri and root artifact
@@ -70,8 +81,11 @@ def _init_server(backend_uri, root_artifact_uri):
         BACKEND_STORE_URI_ENV_VAR: backend_uri,
         ARTIFACT_ROOT_ENV_VAR: tempfile.mkdtemp(dir=root_artifact_uri),
     }
+
     with mock.patch.dict(os.environ, env):
-        process = Process(target=lambda: app.run(LOCALHOST, server_port))
+        process = Process(target=App(hostname=LOCALHOST, port=server_port,
+                                     flask_args={"import_name": __name__,
+                                                 "static_folder": REL_STATIC_DIR}))
         process.start()
     _await_server_up_or_die(server_port)
     url = "http://{hostname}:{port}".format(hostname=LOCALHOST, port=server_port)
@@ -86,6 +100,7 @@ def _get_safe_port():
     port = sock.getsockname()[1]
     sock.close()
     return port
+
 
 # Root directory for all stores (backend or artifact stores) created during this suite
 SUITE_ROOT_DIR = tempfile.mkdtemp("test_rest_tracking")
@@ -195,8 +210,8 @@ def test_rename_experiment_cli(mlflow_client, cli_env):
     experiment_id = mlflow_client.get_experiment_by_name(bad_experiment_name).experiment_id
     assert mlflow_client.get_experiment(experiment_id).name == bad_experiment_name
     invoke_cli_runner(
-            mlflow.experiments.commands,
-            ['rename', str(experiment_id), good_experiment_name], env=cli_env)
+        mlflow.experiments.commands,
+        ['rename', str(experiment_id), good_experiment_name], env=cli_env)
     assert mlflow_client.get_experiment(experiment_id).name == good_experiment_name
 
 
@@ -265,16 +280,14 @@ def test_log_metrics_params_tags(mlflow_client, backend_store_uri):
     assert run.data.metrics.get('stepless-metric') == 987.654
     assert run.data.params.get('param') == 'value'
     assert run.data.tags.get('taggity') == 'do-dah'
-    # TODO(sid): replace this with mlflow_client.get_metric_history
-    store = _tracking_store_registry.get_store(backend_store_uri)
-    metric_history0 = store.get_metric_history(run_id, "metric")
+    metric_history0 = mlflow_client.get_metric_history(run_id, "metric")
     assert len(metric_history0) == 1
     metric0 = metric_history0[0]
     assert metric0.key == "metric"
     assert metric0.value == 123.456
     assert metric0.timestamp == 789
     assert metric0.step == 2
-    metric_history1 = store.get_metric_history(run_id, "stepless-metric")
+    metric_history1 = mlflow_client.get_metric_history(run_id, "stepless-metric")
     assert len(metric_history1) == 1
     metric1 = metric_history1[0]
     assert metric1.key == "stepless-metric"
@@ -295,9 +308,7 @@ def test_log_batch(mlflow_client, backend_store_uri):
     assert run.data.metrics.get('metric') == 123.456
     assert run.data.params.get('param') == 'value'
     assert run.data.tags.get('taggity') == 'do-dah'
-    # TODO(sid): replace this with mlflow_client.get_metric_history
-    store = _tracking_store_registry.get_store(backend_store_uri)
-    metric_history = store.get_metric_history(run_id, "metric")
+    metric_history = mlflow_client.get_metric_history(run_id, "metric")
     assert len(metric_history) == 1
     metric = metric_history[0]
     assert metric.key == "metric"
