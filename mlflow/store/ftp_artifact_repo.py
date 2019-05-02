@@ -49,11 +49,14 @@ class FTPArtifactRepository(ArtifactRepository):
     def _mkdir(self, artifact_dir):
         with self.get_ftp_client() as ftp:
             try:
-                ftp.mkd(artifact_dir)
+                ftp.cwd(artifact_dir)
             except ftplib.error_perm:
-                head, _ = posixpath.split(artifact_dir)
-                self._mkdir(head)
-                self._mkdir(artifact_dir)
+                try:
+                    ftp.mkd(artifact_dir)
+                except ftplib.error_perm:
+                    head, _ = posixpath.split(artifact_dir)
+                    self._mkdir(head)
+                    self._mkdir(artifact_dir)
 
     def _size(self, full_file_path):
         with self.get_ftp_client() as ftp:
