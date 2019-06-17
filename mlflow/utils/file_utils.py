@@ -7,13 +7,8 @@ import sys
 import tarfile
 import tempfile
 
-<<<<<<< HEAD
-
-from six.moves.urllib.request import pathname2url
-=======
 from six.moves.urllib.request import pathname2url
 from six.moves.urllib.parse import unquote
->>>>>>> upstream/master
 from six.moves import urllib
 
 import yaml
@@ -348,9 +343,6 @@ def get_parent_dir(path):
     return os.path.abspath(os.path.join(path, os.pardir))
 
 
-<<<<<<< HEAD
-def path_to_local_file_uri(path):
-=======
 def relative_path_to_artifact_path(path):
     if os.path == posixpath:
         return path
@@ -363,7 +355,6 @@ def path_to_local_file_uri(path):
     """
     Convert local filesystem path to local file uri.
     """
->>>>>>> upstream/master
     path = pathname2url(path)
     if path == posixpath.abspath(path):
         return "file://{path}".format(path=path)
@@ -371,17 +362,6 @@ def path_to_local_file_uri(path):
         return "file:{path}".format(path=path)
 
 
-<<<<<<< HEAD
-def local_file_uri_to_path(uri):
-    """
-    Convert file URI aor path to normalized path.
-
-    :param uri: File URI or path.
-    :return: Normalized path.
-    """
-    path = urllib.parse.urlparse(uri).path if uri.startswith("file:") else uri
-    return urllib.request.url2pathname(path)
-=======
 def path_to_local_sqlite_uri(path):
     """
     Convert local filesystem path to sqlite uri.
@@ -409,4 +389,3 @@ def get_local_path_or_none(path_or_uri):
         return local_file_uri_to_path(path_or_uri)
     else:
         return None
->>>>>>> upstream/master

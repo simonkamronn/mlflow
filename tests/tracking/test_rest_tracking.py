@@ -17,14 +17,8 @@ import time
 import tempfile
 
 import mlflow.experiments
-<<<<<<< HEAD
-from mlflow.entities import RunStatus, Metric, Param, RunTag
-from mlflow.protos.service_pb2 import LOCAL as SOURCE_TYPE_LOCAL
-from mlflow.server import REL_STATIC_DIR, BACKEND_STORE_URI_ENV_VAR, ARTIFACT_ROOT_ENV_VAR
-=======
 from mlflow.entities import RunStatus, Metric, Param, RunTag, ViewType
 from mlflow.server import BACKEND_STORE_URI_ENV_VAR, ARTIFACT_ROOT_ENV_VAR
->>>>>>> upstream/master
 from mlflow.tracking import MlflowClient
 from mlflow.utils.mlflow_tags import MLFLOW_USER, MLFLOW_RUN_NAME, MLFLOW_PARENT_RUN_ID, \
     MLFLOW_SOURCE_TYPE, MLFLOW_SOURCE_NAME, MLFLOW_PROJECT_ENTRY_POINT, MLFLOW_GIT_COMMIT
@@ -98,37 +92,18 @@ def _init_server(backend_uri, root_artifact_uri):
     }
 
     with mock.patch.dict(os.environ, env):
-<<<<<<< HEAD
-        process = Process(target=App(hostname=LOCALHOST, port=server_port,
-                                     flask_args={"import_name": __name__,
-                                                 "static_folder": REL_STATIC_DIR}))
-        process.start()
-=======
         cmd = ["python",
                "-c",
                'from mlflow.server import app; app.run("{hostname}", {port})'.format(
                    hostname=LOCALHOST, port=server_port)]
         process = Popen(cmd)
 
->>>>>>> upstream/master
     _await_server_up_or_die(server_port)
     url = "http://{hostname}:{port}".format(hostname=LOCALHOST, port=server_port)
     print("Launching tracking server against backend URI %s. Server URL: %s" % (backend_uri, url))
     return url, process
 
 
-<<<<<<< HEAD
-def _get_safe_port():
-    """Returns an ephemeral port that is very likely to be free to bind to."""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind((LOCALHOST, 0))
-    port = sock.getsockname()[1]
-    sock.close()
-    return port
-
-
-=======
->>>>>>> upstream/master
 # Root directory for all stores (backend or artifact stores) created during this suite
 SUITE_ROOT_DIR = tempfile.mkdtemp("test_rest_tracking")
 # Root directory for all artifact stores created during this suite
@@ -266,12 +241,8 @@ def test_rename_experiment_cli(mlflow_client, cli_env):
     assert mlflow_client.get_experiment(experiment_id).name == bad_experiment_name
     invoke_cli_runner(
         mlflow.experiments.commands,
-<<<<<<< HEAD
-        ['rename', str(experiment_id), good_experiment_name], env=cli_env)
-=======
         ['rename', '--experiment-id', str(experiment_id), '--new-name', good_experiment_name],
         env=cli_env)
->>>>>>> upstream/master
     assert mlflow_client.get_experiment(experiment_id).name == good_experiment_name
 
 

@@ -9,11 +9,7 @@ import mlflow
 
 from mlflow.entities import RunStatus
 from mlflow.projects import _project_spec
-<<<<<<< HEAD
-from mlflow.tracking.utils import _LOCAL_FS_URI_PREFIX
-=======
 from mlflow.utils.file_utils import path_to_local_sqlite_uri
->>>>>>> upstream/master
 
 
 TEST_DIR = "tests"
@@ -60,13 +56,7 @@ def build_docker_example_base_image():
 @pytest.fixture()
 def tracking_uri_mock(tmpdir):
     try:
-<<<<<<< HEAD
-        path = os.path.abspath(os.path.join(tmpdir.strpath, 'mlruns'))
-        path = path[1:] if path.startswith("/") else path  # Remove prefix / from linux abs paths
-        mlflow.set_tracking_uri(_LOCAL_FS_URI_PREFIX + path)
-=======
         mlflow.set_tracking_uri(path_to_local_sqlite_uri(os.path.join(tmpdir.strpath, 'mlruns')))
->>>>>>> upstream/master
         yield tmpdir
     finally:
         mlflow.set_tracking_uri(None)

@@ -50,23 +50,12 @@ class FTPArtifactRepository(ArtifactRepository):
     def _mkdir(self, artifact_dir):
         with self.get_ftp_client() as ftp:
             try:
-<<<<<<< HEAD
-                ftp.cwd(artifact_dir)
-            except ftplib.error_perm:
-                try:
-                    ftp.mkd(artifact_dir)
-                except ftplib.error_perm:
-                    head, _ = posixpath.split(artifact_dir)
-                    self._mkdir(head)
-                    self._mkdir(artifact_dir)
-=======
                 if not self._is_dir(artifact_dir):
                     ftp.mkd(artifact_dir)
             except ftplib.error_perm:
                 head, _ = posixpath.split(artifact_dir)
                 self._mkdir(head)
                 self._mkdir(artifact_dir)
->>>>>>> upstream/master
 
     def _size(self, full_file_path):
         with self.get_ftp_client() as ftp:
@@ -100,10 +89,7 @@ class FTPArtifactRepository(ArtifactRepository):
             upload_path = dest_path
             if root != local_dir:
                 rel_path = os.path.relpath(root, local_dir)
-<<<<<<< HEAD
-=======
                 rel_path = relative_path_to_artifact_path(rel_path)
->>>>>>> upstream/master
                 upload_path = posixpath.join(dest_path_re, rel_path)
             if not filenames:
                 self._mkdir(posixpath.join(self.path, upload_path))

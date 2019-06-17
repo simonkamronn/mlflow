@@ -7,11 +7,7 @@ import uuid
 import six
 
 from mlflow.entities import Experiment, Metric, Param, Run, RunData, RunInfo, RunStatus, RunTag, \
-<<<<<<< HEAD
-    ViewType
-=======
     ViewType, SourceType
->>>>>>> upstream/master
 from mlflow.entities.lifecycle_stage import LifecycleStage
 from mlflow.entities.run_info import check_run_is_active, check_run_is_deleted
 from mlflow.exceptions import MlflowException, MissingConfigException
@@ -22,20 +18,12 @@ from mlflow.store.abstract_store import AbstractStore
 from mlflow.utils.validation import _validate_metric_name, _validate_param_name, _validate_run_id, \
     _validate_tag_name, _validate_experiment_id, \
     _validate_batch_log_limits, _validate_batch_log_data
-<<<<<<< HEAD
-
-=======
->>>>>>> upstream/master
 from mlflow.utils.env import get_env
 from mlflow.utils.file_utils import (is_directory, list_subdirs, mkdir, exists, write_yaml,
                                      read_yaml, find, read_file_lines, read_file,
                                      write_to, append_to, make_containing_dirs, mv, get_parent_dir,
                                      list_all, local_file_uri_to_path, path_to_local_file_uri)
-<<<<<<< HEAD
-from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME, MLFLOW_PARENT_RUN_ID
-=======
 from mlflow.utils.search_utils import SearchUtils
->>>>>>> upstream/master
 
 _TRACKING_DIR_ENV_VAR = "MLFLOW_TRACKING_DIR"
 
@@ -169,15 +157,9 @@ class FileStore(AbstractStore):
 
     def _get_artifact_dir(self, experiment_id, run_uuid):
         _validate_run_id(run_uuid)
-<<<<<<< HEAD
-        artifacts_dir = os.path.join(self.get_experiment(experiment_id).artifact_location,
-                                     run_uuid,
-                                     FileStore.ARTIFACTS_FOLDER_NAME)
-=======
         artifacts_dir = posixpath.join(self.get_experiment(experiment_id).artifact_location,
                                        run_uuid,
                                        FileStore.ARTIFACTS_FOLDER_NAME)
->>>>>>> upstream/master
         return artifacts_dir
 
     def _get_active_experiments(self, full_path=False):
@@ -211,11 +193,6 @@ class FileStore(AbstractStore):
         artifact_uri = artifact_uri or posixpath.join(self.artifact_root_uri, str(experiment_id))
         self._check_root_dir()
         meta_dir = mkdir(self.root_directory, str(experiment_id))
-<<<<<<< HEAD
-        artifact_uri = artifact_uri or path_to_local_file_uri(
-            os.path.join(self.root_directory, str(experiment_id)))
-=======
->>>>>>> upstream/master
         experiment = Experiment(experiment_id, name, artifact_uri, LifecycleStage.ACTIVE)
         write_yaml(meta_dir, FileStore.META_DATA_FILE_NAME, dict(experiment))
         return experiment_id

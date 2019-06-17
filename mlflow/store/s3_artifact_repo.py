@@ -1,9 +1,5 @@
 import os
 
-<<<<<<< HEAD
-import boto3
-=======
->>>>>>> upstream/master
 import posixpath
 from six.moves import urllib
 
@@ -51,10 +47,7 @@ class S3ArtifactRepository(ArtifactRepository):
             upload_path = dest_path
             if root != local_dir:
                 rel_path = os.path.relpath(root, local_dir)
-<<<<<<< HEAD
-=======
                 rel_path = relative_path_to_artifact_path(rel_path)
->>>>>>> upstream/master
                 upload_path = posixpath.join(dest_path, rel_path)
             for f in filenames:
                 s3_client.upload_file(

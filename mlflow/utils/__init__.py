@@ -3,8 +3,6 @@ from sys import version_info
 import numpy as np
 import pandas as pd
 from six.moves import urllib
-<<<<<<< HEAD
-=======
 
 from mlflow.exceptions import MlflowException
 from mlflow.protos.databricks_pb2 import INVALID_PARAMETER_VALUE
@@ -12,7 +10,6 @@ from mlflow.protos.databricks_pb2 import INVALID_PARAMETER_VALUE
 from mlflow.store.dbmodels.db_types import DATABASE_ENGINES
 from mlflow.utils.annotations import deprecated, experimental, keyword_only
 from mlflow.utils.validation import _validate_db_type_string
->>>>>>> upstream/master
 
 PYTHON_VERSION = "{major}.{minor}.{micro}".format(major=version_info.major,
                                                   minor=version_info.minor,
@@ -77,12 +74,8 @@ def get_unique_resource_id(max_length=None):
 
 
 def get_uri_scheme(uri_or_path):
-<<<<<<< HEAD
-    return urllib.parse.urlparse(uri_or_path).scheme
-=======
     scheme = urllib.parse.urlparse(uri_or_path).scheme
     if any([scheme.lower().startswith(db) for db in DATABASE_ENGINES]):
         return extract_db_type_from_uri(uri_or_path)
     else:
         return scheme
->>>>>>> upstream/master

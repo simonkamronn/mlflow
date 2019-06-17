@@ -9,12 +9,8 @@ from mlflow.store import DEFAULT_LOCAL_FILE_AND_ARTIFACT_PATH
 from mlflow.store.dbmodels.db_types import DATABASE_ENGINES
 from mlflow.store.file_store import FileStore
 from mlflow.store.rest_store import RestStore
-<<<<<<< HEAD
-from mlflow.utils import env, rest_utils, file_utils, get_uri_scheme
-=======
 from mlflow.tracking.registry import TrackingStoreRegistry
 from mlflow.utils import env, rest_utils
->>>>>>> upstream/master
 from mlflow.utils.file_utils import path_to_local_file_uri
 from mlflow.utils.databricks_utils import get_databricks_host_creds
 
@@ -92,17 +88,7 @@ def _is_databricks_uri(uri):
 
 
 def _get_file_store(store_uri, **_):
-<<<<<<< HEAD
-    return FileStore(file_utils.local_file_uri_to_path(store_uri), store_uri)
-
-
-def _is_database_uri(uri):
-    if urllib.parse.urlparse(uri).scheme not in DATABASE_ENGINES:
-        return False
-    return True
-=======
     return FileStore(store_uri, store_uri)
->>>>>>> upstream/master
 
 
 def _get_sqlalchemy_store(store_uri, artifact_uri):
@@ -141,70 +127,6 @@ def _get_databricks_rest_store(store_uri, **_):
     return RestStore(lambda: get_databricks_host_creds(profile))
 
 
-<<<<<<< HEAD
-class TrackingStoreRegistry:
-    """Scheme-based registry for tracking store implementations
-
-    This class allows the registration of a function or class to provide an
-    implementation for a given scheme of `store_uri` through the `register`
-    methods. Implementations declared though the entrypoints
-    `mlflow.tracking_store` group can be automatically registered through the
-    `register_entrypoints` method.
-
-    When instantiating a store through the `get_store` method, the scheme of
-    the store URI provided (or inferred from environment) will be used to
-    select which implementation to instantiate, which will be called with same
-    arguments passed to the `get_store` method.
-    """
-
-    def __init__(self):
-        self._registry = {}
-
-    def register(self, scheme, store_builder):
-        self._registry[scheme] = store_builder
-
-    def register_entrypoints(self):
-        """Register tracking stores provided by other packages"""
-        for entrypoint in entrypoints.get_group_all("mlflow.tracking_store"):
-            try:
-                self.register(entrypoint.name, entrypoint.load())
-            except (AttributeError, ImportError) as exc:
-                warnings.warn(
-                    'Failure attempting to register tracking store for scheme "{}": {}'.format(
-                        entrypoint.name, str(exc)
-                    ),
-                    stacklevel=2
-                )
-
-    def get_store(self, store_uri=None, artifact_uri=None):
-        """Get a store from the registry based on the scheme of store_uri
-
-        :param store_uri: The store URI. If None, it will be inferred from the environment. This URI
-                          is used to select which tracking store implementation to instantiate and
-                          is passed to the constructor of the implementation.
-        :param artifact_uri: Artifact repository URI. Passed through to the tracking store
-                             implementation.
-
-        :return: An instance of `mlflow.store.AbstractStore` that fulfills the store URI
-                 requirements.
-        """
-        store_uri = store_uri if store_uri is not None else get_tracking_uri()
-        scheme = store_uri if store_uri == "databricks" else get_uri_scheme(store_uri)
-
-        try:
-            store_builder = self._registry[scheme]
-        except KeyError:
-            raise MlflowException(
-                "Could not find a registered tracking store for: {}. "
-                "Currently registered schemes are: {}".format(
-                    store_uri, list(self._registry.keys())
-                )
-            )
-        return store_builder(store_uri=store_uri, artifact_uri=artifact_uri)
-
-
-=======
->>>>>>> upstream/master
 _tracking_store_registry = TrackingStoreRegistry()
 _tracking_store_registry.register('', _get_file_store)
 _tracking_store_registry.register('file', _get_file_store)

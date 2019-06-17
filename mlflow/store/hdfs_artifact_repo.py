@@ -32,11 +32,7 @@ class HdfsArtifactRepository(ArtifactRepository):
         hdfs_base_path = _resolve_base_path(self.path, artifact_path)
 
         with hdfs_system(host=self.host, port=self.port) as hdfs:
-<<<<<<< HEAD
-            _, file_name = posixpath.split(local_file)
-=======
             _, file_name = os.path.split(local_file)
->>>>>>> upstream/master
             destination = posixpath.join(hdfs_base_path, file_name)
             with hdfs.open(destination, 'wb') as output:
                 output.write(open(local_file, "rb").read())
@@ -134,11 +130,7 @@ class HdfsArtifactRepository(ArtifactRepository):
 
             for path, is_dir, _ in self._walk_path(hdfs, hdfs_base_path):
 
-<<<<<<< HEAD
-                relative_path = _relative_path(hdfs_base_path, path)
-=======
                 relative_path = _relative_path_remote(hdfs_base_path, path)
->>>>>>> upstream/master
                 local_path = os.path.join(local_dir, relative_path) \
                     if relative_path else local_dir
 

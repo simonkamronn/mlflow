@@ -1,15 +1,10 @@
 import logging
 import uuid
 from contextlib import contextmanager
-<<<<<<< HEAD
-import posixpath
-from six.moves import urllib
-=======
 
 import posixpath
 from alembic.script import ScriptDirectory
 import sqlalchemy
->>>>>>> upstream/master
 
 from mlflow.entities.lifecycle_stage import LifecycleStage
 from mlflow.store import SEARCH_MAX_RESULTS_THRESHOLD
@@ -22,12 +17,6 @@ from mlflow.exceptions import MlflowException
 from mlflow.protos.databricks_pb2 import INVALID_PARAMETER_VALUE, RESOURCE_ALREADY_EXISTS, \
     INVALID_STATE, RESOURCE_DOES_NOT_EXIST, INTERNAL_ERROR
 from mlflow.tracking.utils import _is_local_uri
-<<<<<<< HEAD
-from mlflow.utils.file_utils import mkdir, local_file_uri_to_path
-from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID, MLFLOW_RUN_NAME
-from mlflow.utils.validation import _validate_batch_log_limits, _validate_batch_log_data,\
-    _validate_run_id
-=======
 from mlflow.utils import extract_db_type_from_uri
 from mlflow.utils.file_utils import mkdir, local_file_uri_to_path
 from mlflow.utils.search_utils import SearchUtils
@@ -38,7 +27,6 @@ from mlflow.store.dbmodels.initial_models import Base as InitialBase
 
 
 _logger = logging.getLogger(__name__)
->>>>>>> upstream/master
 
 
 class SqlAlchemyStore(AbstractStore):
@@ -339,14 +327,6 @@ class SqlAlchemyStore(AbstractStore):
                 raise MlflowException('Experiment id={} must be active'.format(experiment_id),
                                       INVALID_STATE)
 
-<<<<<<< HEAD
-            run_uuid = uuid.uuid4().hex
-            artifact_location = posixpath.join(experiment.artifact_location, run_uuid,
-                                               SqlAlchemyStore.ARTIFACTS_FOLDER_NAME)
-            run = SqlRun(name=run_name or "", artifact_uri=artifact_location, run_uuid=run_uuid,
-                         experiment_id=experiment_id, source_type=SourceType.to_string(source_type),
-                         source_name=source_name, entry_point_name=entry_point_name,
-=======
             run_id = uuid.uuid4().hex
             artifact_location = posixpath.join(experiment.artifact_location, run_id,
                                                SqlAlchemyStore.ARTIFACTS_FOLDER_NAME)
@@ -354,7 +334,6 @@ class SqlAlchemyStore(AbstractStore):
                          experiment_id=experiment_id,
                          source_type=SourceType.to_string(SourceType.UNKNOWN),
                          source_name="", entry_point_name="",
->>>>>>> upstream/master
                          user_id=user_id, status=RunStatus.to_string(RunStatus.RUNNING),
                          start_time=start_time, end_time=None,
                          source_version="", lifecycle_stage=LifecycleStage.ACTIVE)
