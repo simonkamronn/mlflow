@@ -52,10 +52,6 @@ class RunsArtifactRepository(ArtifactRepository):
 
         return run_id, artifact_path
 
-    def get_path_module(self):
-        import posixpath
-        return posixpath
-
     def log_artifact(self, local_file, artifact_path=None):
         """
         Log a local file as an artifact, optionally taking an ``artifact_path`` to place it in
@@ -81,7 +77,7 @@ class RunsArtifactRepository(ArtifactRepository):
 
     def list_artifacts(self, path):
         """
-        Return all the artifacts for this run_uuid directly under path. If path is a file, returns
+        Return all the artifacts for this run_id directly under path. If path is a file, returns
         an empty list. Will error if path is neither a file nor directory.
 
         :param path: Relative source path that contain desired artifacts
@@ -89,6 +85,23 @@ class RunsArtifactRepository(ArtifactRepository):
         :return: List of artifacts as FileInfo listed directly under path.
         """
         return self.repo.list_artifacts(path)
+
+    def download_artifacts(self, artifact_path, dst_path=None):
+        """
+        Download an artifact file or directory to a local directory if applicable, and return a
+        local path for it.
+        The caller is responsible for managing the lifecycle of the downloaded artifacts.
+
+        :param artifact_path: Relative source path to the desired artifacts.
+        :param dst_path: Absolute path of the local filesystem destination directory to which to
+                         download the specified artifacts. This directory must already exist.
+                         If unspecified, the artifacts will either be downloaded to a new
+                         uniquely-named directory on the local filesystem or will be returned
+                         directly in the case of the LocalArtifactRepository.
+
+        :return: Absolute path of the local filesystem location containing the desired artifacts.
+        """
+        return self.repo.download_artifacts(artifact_path, dst_path)
 
     def _download_file(self, remote_file_path, local_path):
         """

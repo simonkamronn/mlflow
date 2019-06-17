@@ -48,10 +48,10 @@ class ArtifactRepository:
     @abstractmethod
     def list_artifacts(self, path):
         """
-        Return all the artifacts for this run_uuid directly under path. If path is a file, returns
+        Return all the artifacts for this run_id directly under path. If path is a file, returns
         an empty list. Will error if path is neither a file nor directory.
 
-        :param path: Relative source path that contain desired artifacts
+        :param path: Relative source path that contains desired artifacts
 
         :return: List of artifacts as FileInfo listed directly under path.
         """
@@ -65,11 +65,12 @@ class ArtifactRepository:
 
         :param artifact_path: Relative source path to the desired artifacts.
         :param dst_path: Absolute path of the local filesystem destination directory to which to
-                         download the specified artifacts. This directory must already exist. If
-                         unspecified, the artifacts will be downloaded to a new, uniquely-named
-                         directory on the local filesystem.
+                         download the specified artifacts. This directory must already exist.
+                         If unspecified, the artifacts will either be downloaded to a new
+                         uniquely-named directory on the local filesystem or will be returned
+                         directly in the case of the LocalArtifactRepository.
 
-        :return: Absolute path of the local filesystem location containing the downloaded artifacts.
+        :return: Absolute path of the local filesystem location containing the desired artifacts.
         """
 
         # TODO: Probably need to add a more efficient method to stream just a single artifact

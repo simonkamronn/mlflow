@@ -1,5 +1,6 @@
 import os
 import pytest
+import posixpath
 
 from mlflow.exceptions import MlflowException
 from mlflow.store.local_artifact_repo import LocalArtifactRepository
@@ -60,6 +61,24 @@ def test_download_artifacts(local_artifact_repo):
         assert open(dst_path).read() == artifact_text
 
 
+def test_download_artifacts_does_not_copy(local_artifact_repo):
+    """
+    The LocalArtifactRepository.download_artifact function should not copy the artifact if
+    the ``dst_path`` argument is None.
+    """
+    artifact_rel_path = "test.txt"
+    artifact_text = "hello world!"
+    with TempDir(chdr=True) as local_dir:
+        artifact_src_path = local_dir.path(artifact_rel_path)
+        with open(artifact_src_path, "w") as f:
+            f.write(artifact_text)
+        local_artifact_repo.log_artifact(artifact_src_path)
+        dst_path = local_artifact_repo.download_artifacts(artifact_path=artifact_rel_path)
+        assert open(dst_path).read() == artifact_text
+        assert dst_path.startswith(local_artifact_repo.artifact_dir), \
+            'downloaded artifact is not in local_artifact_repo.artifact_dir root'
+
+
 def test_download_artifacts_returns_absolute_paths(local_artifact_repo):
     artifact_rel_path = "test.txt"
     artifact_text = "hello world!"
@@ -75,6 +94,9 @@ def test_download_artifacts_returns_absolute_paths(local_artifact_repo):
             dst_path = local_artifact_repo.download_artifacts(
                 artifact_path=artifact_rel_path,
                 dst_path=dst_dir)
+            if dst_dir is not None:
+                # If dst_dir isn't none, assert we're actually downloading to dst_dir.
+                assert dst_path.startswith(os.path.abspath(dst_dir))
             assert dst_path == os.path.abspath(dst_path)
 
 
@@ -101,7 +123,7 @@ def test_artifacts_are_logged_to_and_downloaded_from_repo_subdirectory_successfu
     assert open(os.path.join(downloaded_subdir, artifact_rel_path)).read() == artifact_text
 
     downloaded_file = local_artifact_repo.download_artifacts(
-        os.path.join(repo_subdir_path, artifact_rel_path))
+        posixpath.join(repo_subdir_path, artifact_rel_path))
     assert open(downloaded_file).read() == artifact_text
 
 
@@ -135,4 +157,4 @@ def test_hidden_files_are_logged_correctly(local_artifact_repo):
         with open(hidden_file, "w") as f:
             f.write("42")
         local_artifact_repo.log_artifact(hidden_file)
-        assert open(local_artifact_repo.download_artifacts(hidden_file)).read() == "42"
+        assert open(local_artifact_repo.download_artifacts(".mystery")).read() == "42"

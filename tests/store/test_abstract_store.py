@@ -25,14 +25,13 @@ class AbstractStoreTestImpl(AbstractStore):
     def rename_experiment(self, experiment_id, new_name):
         raise NotImplementedError()
 
-    def get_run(self, run_uuid):
+    def get_run(self, run_id):
         raise NotImplementedError()
 
-    def update_run_info(self, run_uuid, run_status, end_time):
+    def update_run_info(self, run_id, run_status, end_time):
         raise NotImplementedError()
 
-    def create_run(self, experiment_id, user_id, run_name, source_type, source_name,
-                   entry_point_name, start_time, source_version, tags, parent_run_id):
+    def create_run(self, experiment_id, user_id, start_time, tags):
         raise NotImplementedError()
 
     def delete_run(self, run_id):
@@ -41,11 +40,11 @@ class AbstractStoreTestImpl(AbstractStore):
     def restore_run(self, run_id):
         raise NotImplementedError()
 
-    def get_metric_history(self, run_uuid, metric_key):
+    def get_metric_history(self, run_id, metric_key):
         raise NotImplementedError()
 
-    def search_runs(self, experiment_ids, search_filter, run_view_type,
-                    max_results=SEARCH_MAX_RESULTS_DEFAULT):
+    def search_runs(self, experiment_ids, filter_string, run_view_type,
+                    max_results=SEARCH_MAX_RESULTS_DEFAULT, order_by=None):
         raise NotImplementedError()
 
     def log_batch(self, run_id, metrics, params, tags):

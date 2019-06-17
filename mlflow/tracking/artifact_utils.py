@@ -45,12 +45,15 @@ def get_artifact_uri(run_id, artifact_path=None):
 
 # TODO: This method does not require a Run and its internals should be moved to
 #  data.download_uri (requires confirming that Projects will not break with this change).
+# Also this would be much simpler if artifact_repo.download_artifacts could take the absolute path
+# or no path.
 def _download_artifact_from_uri(artifact_uri, output_path=None):
     """
     :param artifact_uri: The *absolute* URI of the artifact to download.
     :param output_path: The local filesystem path to which to download the artifact. If unspecified,
                         a local output path will be created.
     """
+<<<<<<< HEAD
     artifact_src_dir = posixpath.dirname(artifact_uri)
     artifact_src_relative_path = posixpath.basename(artifact_uri)
     artifact_repo = get_artifact_repository(artifact_uri=artifact_src_dir)
@@ -65,3 +68,16 @@ def _get_model_log_dir(model_name, run_id):
     run = store.get_run(run_id)
     artifact_repo = get_artifact_repository(run.info.artifact_uri)
     return artifact_repo.download_artifacts(model_name)
+=======
+    parsed_uri = urllib.parse.urlparse(artifact_uri)
+    prefix = ""
+    if parsed_uri.scheme and not parsed_uri.path.startswith("/"):
+        # relative path is a special case, urllib does not reconstruct it properly
+        prefix = parsed_uri.scheme + ":"
+        parsed_uri = parsed_uri._replace(scheme="")
+    artifact_path = posixpath.basename(parsed_uri.path)
+    parsed_uri = parsed_uri._replace(path=posixpath.dirname(parsed_uri.path))
+    root_uri = prefix + urllib.parse.urlunparse(parsed_uri)
+    return get_artifact_repository(artifact_uri=root_uri).download_artifacts(
+        artifact_path=artifact_path, dst_path=output_path)
+>>>>>>> upstream/master

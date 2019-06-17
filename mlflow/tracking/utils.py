@@ -2,17 +2,19 @@ from __future__ import print_function
 
 import os
 import sys
-import warnings
 
-import entrypoints
 from six.moves import urllib
 
-from mlflow.exceptions import MlflowException
 from mlflow.store import DEFAULT_LOCAL_FILE_AND_ARTIFACT_PATH
 from mlflow.store.dbmodels.db_types import DATABASE_ENGINES
 from mlflow.store.file_store import FileStore
 from mlflow.store.rest_store import RestStore
+<<<<<<< HEAD
 from mlflow.utils import env, rest_utils, file_utils, get_uri_scheme
+=======
+from mlflow.tracking.registry import TrackingStoreRegistry
+from mlflow.utils import env, rest_utils
+>>>>>>> upstream/master
 from mlflow.utils.file_utils import path_to_local_file_uri
 from mlflow.utils.databricks_utils import get_databricks_host_creds
 
@@ -73,6 +75,7 @@ def get_tracking_uri():
 
 
 def _is_local_uri(uri):
+    """Returns true if this is a local file path (/foo or file:/foo)."""
     scheme = urllib.parse.urlparse(uri).scheme
     return uri != 'databricks' and (scheme == '' or scheme == 'file')
 
@@ -89,6 +92,7 @@ def _is_databricks_uri(uri):
 
 
 def _get_file_store(store_uri, **_):
+<<<<<<< HEAD
     return FileStore(file_utils.local_file_uri_to_path(store_uri), store_uri)
 
 
@@ -96,6 +100,9 @@ def _is_database_uri(uri):
     if urllib.parse.urlparse(uri).scheme not in DATABASE_ENGINES:
         return False
     return True
+=======
+    return FileStore(store_uri, store_uri)
+>>>>>>> upstream/master
 
 
 def _get_sqlalchemy_store(store_uri, artifact_uri):
@@ -134,6 +141,7 @@ def _get_databricks_rest_store(store_uri, **_):
     return RestStore(lambda: get_databricks_host_creds(profile))
 
 
+<<<<<<< HEAD
 class TrackingStoreRegistry:
     """Scheme-based registry for tracking store implementations
 
@@ -195,6 +203,8 @@ class TrackingStoreRegistry:
         return store_builder(store_uri=store_uri, artifact_uri=artifact_uri)
 
 
+=======
+>>>>>>> upstream/master
 _tracking_store_registry = TrackingStoreRegistry()
 _tracking_store_registry.register('', _get_file_store)
 _tracking_store_registry.register('file', _get_file_store)

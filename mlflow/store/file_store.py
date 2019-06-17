@@ -1,11 +1,17 @@
 import logging
 import os
+import posixpath
+import sys
 
 import uuid
 import six
 
 from mlflow.entities import Experiment, Metric, Param, Run, RunData, RunInfo, RunStatus, RunTag, \
+<<<<<<< HEAD
     ViewType
+=======
+    ViewType, SourceType
+>>>>>>> upstream/master
 from mlflow.entities.lifecycle_stage import LifecycleStage
 from mlflow.entities.run_info import check_run_is_active, check_run_is_deleted
 from mlflow.exceptions import MlflowException, MissingConfigException
@@ -16,13 +22,20 @@ from mlflow.store.abstract_store import AbstractStore
 from mlflow.utils.validation import _validate_metric_name, _validate_param_name, _validate_run_id, \
     _validate_tag_name, _validate_experiment_id, \
     _validate_batch_log_limits, _validate_batch_log_data
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/master
 from mlflow.utils.env import get_env
 from mlflow.utils.file_utils import (is_directory, list_subdirs, mkdir, exists, write_yaml,
                                      read_yaml, find, read_file_lines, read_file,
                                      write_to, append_to, make_containing_dirs, mv, get_parent_dir,
                                      list_all, local_file_uri_to_path, path_to_local_file_uri)
+<<<<<<< HEAD
 from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME, MLFLOW_PARENT_RUN_ID
+=======
+from mlflow.utils.search_utils import SearchUtils
+>>>>>>> upstream/master
 
 _TRACKING_DIR_ENV_VAR = "MLFLOW_TRACKING_DIR"
 
@@ -46,6 +59,17 @@ def _make_persisted_run_info_dict(run_info):
     # old mlflow versions to read
     run_info_dict = dict(run_info)
     run_info_dict['tags'] = []
+    run_info_dict['name'] = ''
+    if 'status' in run_info_dict:
+        # 'status' is stored as an integer enum in meta file, but RunInfo.status field is a string.
+        # Convert from string to enum/int before storing.
+        run_info_dict['status'] = RunStatus.from_string(run_info.status)
+    else:
+        run_info_dict['status'] = RunStatus.RUNNING
+    run_info_dict['source_type'] = SourceType.LOCAL
+    run_info_dict['source_name'] = ''
+    run_info_dict['entry_point_name'] = ''
+    run_info_dict['source_version'] = ''
     return run_info_dict
 
 
@@ -53,6 +77,10 @@ def _read_persisted_run_info_dict(run_info_dict):
     dict_copy = run_info_dict.copy()
     if 'lifecycle_stage' not in dict_copy:
         dict_copy['lifecycle_stage'] = LifecycleStage.ACTIVE
+    # 'status' is stored as an integer enum in meta file, but RunInfo.status field is a string.
+    # converting to string before hydrating RunInfo.
+    # If 'status' value not recorded in files, mark it as 'RUNNING' (default)
+    dict_copy['status'] = RunStatus.to_string(run_info_dict.get('status', RunStatus.RUNNING))
 
     # 'experiment_id' was changed from int to string, so we must cast to string
     # when reading legacy run_infos
@@ -141,9 +169,15 @@ class FileStore(AbstractStore):
 
     def _get_artifact_dir(self, experiment_id, run_uuid):
         _validate_run_id(run_uuid)
+<<<<<<< HEAD
         artifacts_dir = os.path.join(self.get_experiment(experiment_id).artifact_location,
                                      run_uuid,
                                      FileStore.ARTIFACTS_FOLDER_NAME)
+=======
+        artifacts_dir = posixpath.join(self.get_experiment(experiment_id).artifact_location,
+                                       run_uuid,
+                                       FileStore.ARTIFACTS_FOLDER_NAME)
+>>>>>>> upstream/master
         return artifacts_dir
 
     def _get_active_experiments(self, full_path=False):
@@ -174,10 +208,14 @@ class FileStore(AbstractStore):
         return experiments
 
     def _create_experiment_with_id(self, name, experiment_id, artifact_uri):
+        artifact_uri = artifact_uri or posixpath.join(self.artifact_root_uri, str(experiment_id))
         self._check_root_dir()
         meta_dir = mkdir(self.root_directory, str(experiment_id))
+<<<<<<< HEAD
         artifact_uri = artifact_uri or path_to_local_file_uri(
             os.path.join(self.root_directory, str(experiment_id)))
+=======
+>>>>>>> upstream/master
         experiment = Experiment(experiment_id, name, artifact_uri, LifecycleStage.ACTIVE)
         write_yaml(meta_dir, FileStore.META_DATA_FILE_NAME, dict(experiment))
         return experiment_id
@@ -314,16 +352,15 @@ class FileStore(AbstractStore):
             return os.path.basename(os.path.abspath(experiment_dir)), runs[0]
         return None, None
 
-    def update_run_info(self, run_uuid, run_status, end_time):
-        _validate_run_id(run_uuid)
-        run_info = self.get_run(run_uuid).info
+    def update_run_info(self, run_id, run_status, end_time):
+        _validate_run_id(run_id)
+        run_info = self.get_run(run_id).info
         check_run_is_active(run_info)
         new_info = run_info._copy_with_overrides(run_status, end_time)
         self._overwrite_run_info(new_info)
         return new_info
 
-    def create_run(self, experiment_id, user_id, run_name, source_type,
-                   source_name, entry_point_name, start_time, source_version, tags, parent_run_id):
+    def create_run(self, experiment_id, user_id, start_time, tags):
         """
         Creates a run with the specified attributes.
         """
@@ -341,15 +378,13 @@ class FileStore(AbstractStore):
                 databricks_pb2.INVALID_STATE)
         run_uuid = uuid.uuid4().hex
         artifact_uri = self._get_artifact_dir(experiment_id, run_uuid)
-        run_info = RunInfo(run_uuid=run_uuid, experiment_id=experiment_id,
-                           name="",
-                           artifact_uri=artifact_uri, source_type=source_type,
-                           source_name=source_name,
-                           entry_point_name=entry_point_name, user_id=user_id,
-                           status=RunStatus.RUNNING, start_time=start_time, end_time=None,
-                           source_version=source_version, lifecycle_stage=LifecycleStage.ACTIVE)
+        run_info = RunInfo(run_uuid=run_uuid, run_id=run_uuid, experiment_id=experiment_id,
+                           artifact_uri=artifact_uri, user_id=user_id,
+                           status=RunStatus.to_string(RunStatus.RUNNING),
+                           start_time=start_time, end_time=None,
+                           lifecycle_stage=LifecycleStage.ACTIVE)
         # Persist run metadata and create directories for logging metrics, parameters, artifacts
-        run_dir = self._get_run_dir(run_info.experiment_id, run_info.run_uuid)
+        run_dir = self._get_run_dir(run_info.experiment_id, run_info.run_id)
         mkdir(run_dir)
         run_info_dict = _make_persisted_run_info_dict(run_info)
         write_yaml(run_dir, FileStore.META_DATA_FILE_NAME, run_info_dict)
@@ -358,24 +393,20 @@ class FileStore(AbstractStore):
         mkdir(run_dir, FileStore.ARTIFACTS_FOLDER_NAME)
         for tag in tags:
             self.set_tag(run_uuid, tag)
-        if parent_run_id:
-            self.set_tag(run_uuid, RunTag(key=MLFLOW_PARENT_RUN_ID, value=parent_run_id))
-        if run_name:
-            self.set_tag(run_uuid, RunTag(key=MLFLOW_RUN_NAME, value=run_name))
-        return Run(run_info=run_info, run_data=None)
+        return self.get_run(run_id=run_uuid)
 
-    def get_run(self, run_uuid):
+    def get_run(self, run_id):
         """
         Note: Will get both active and deleted runs.
         """
-        _validate_run_id(run_uuid)
-        run_info = self._get_run_info(run_uuid)
+        _validate_run_id(run_id)
+        run_info = self._get_run_info(run_id)
         if run_info is None:
-            raise MlflowException("Run '%s' metadata is in invalid state." % run_uuid,
+            raise MlflowException("Run '%s' metadata is in invalid state." % run_id,
                                   databricks_pb2.INVALID_STATE)
-        metrics = self.get_all_metrics(run_uuid)
-        params = self.get_all_params(run_uuid)
-        tags = self.get_all_tags(run_uuid)
+        metrics = self.get_all_metrics(run_id)
+        params = self.get_all_params(run_id)
+        tags = self.get_all_tags(run_id)
         return Run(run_info, RunData(metrics, params, tags))
 
     def _get_run_info(self, run_uuid):
@@ -392,7 +423,7 @@ class FileStore(AbstractStore):
         if run_info.experiment_id != exp_id:
             logging.warning("Wrong experiment ID (%s) recorded for run '%s'. It should be %s. "
                             "Run will be ignored.", str(run_info.experiment_id),
-                            str(run_info.run_uuid), str(exp_id), exc_info=True)
+                            str(run_info.run_id), str(exp_id), exc_info=True)
             return None
         return run_info
 
@@ -420,6 +451,13 @@ class FileStore(AbstractStore):
             for name in files:
                 abspath = os.path.join(root, name)
                 file_names.append(os.path.relpath(abspath, source_dirs[0]))
+        if sys.platform == "win32":
+            # Turn metric relative path into metric name.
+            # Metrics can have '/' in the name. On windows, '/' is interpreted as a separator.
+            # When the metric is read back the path will use '\' for separator.
+            # We need to translate the path into posix path.
+            from mlflow.utils.file_utils import relative_path_to_artifact_path
+            file_names = [relative_path_to_artifact_path(x) for x in file_names]
         return source_dirs[0], file_names
 
     @staticmethod
@@ -455,12 +493,12 @@ class FileStore(AbstractStore):
         step = int(metric_parts[2]) if len(metric_parts) == 3 else 0
         return Metric(key=metric_name, value=val, timestamp=ts, step=step)
 
-    def get_metric_history(self, run_uuid, metric_key):
-        _validate_run_id(run_uuid)
+    def get_metric_history(self, run_id, metric_key):
+        _validate_run_id(run_id)
         _validate_metric_name(metric_key)
-        parent_path, metric_files = self._get_run_files(run_uuid, "metric")
+        parent_path, metric_files = self._get_run_files(run_id, "metric")
         if metric_key not in metric_files:
-            raise MlflowException("Metric '%s' not found under run '%s'" % (metric_key, run_uuid),
+            raise MlflowException("Metric '%s' not found under run '%s'" % (metric_key, run_id),
                                   databricks_pb2.RESOURCE_DOES_NOT_EXIST)
         return [FileStore._get_metric_from_line(metric_key, line)
                 for line in read_file_lines(parent_path, metric_key)]
@@ -518,8 +556,8 @@ class FileStore(AbstractStore):
                                 exc_info=True)
         return run_infos
 
-    def search_runs(self, experiment_ids, search_filter, run_view_type,
-                    max_results=SEARCH_MAX_RESULTS_THRESHOLD):
+    def search_runs(self, experiment_ids, filter_string, run_view_type,
+                    max_results=SEARCH_MAX_RESULTS_THRESHOLD, order_by=None):
         if max_results > SEARCH_MAX_RESULTS_THRESHOLD:
             raise MlflowException("Invalid value for request parameter max_results. It must be at "
                                   "most {}, but got value {}".format(SEARCH_MAX_RESULTS_THRESHOLD,
@@ -528,16 +566,16 @@ class FileStore(AbstractStore):
         runs = []
         for experiment_id in experiment_ids:
             run_infos = self._list_run_infos(experiment_id, run_view_type)
-            runs.extend(self.get_run(r.run_uuid) for r in run_infos)
-        filtered = [run for run in runs if not search_filter or search_filter.filter(run)]
-        return sorted(filtered, key=lambda r: (-r.info.start_time, r.info.run_uuid))[:max_results]
+            runs.extend(self.get_run(r.run_id) for r in run_infos)
+        filtered = SearchUtils.filter(runs, filter_string)
+        return SearchUtils.sort(filtered, order_by)[:max_results]
 
-    def log_metric(self, run_uuid, metric):
-        _validate_run_id(run_uuid)
+    def log_metric(self, run_id, metric):
+        _validate_run_id(run_id)
         _validate_metric_name(metric.key)
-        run = self.get_run(run_uuid)
+        run = self.get_run(run_id)
         check_run_is_active(run.info)
-        metric_path = self._get_metric_path(run.info.experiment_id, run_uuid, metric.key)
+        metric_path = self._get_metric_path(run.info.experiment_id, run_id, metric.key)
         make_containing_dirs(metric_path)
         append_to(metric_path, "%s %s %s\n" % (metric.timestamp, metric.value, metric.step))
 
@@ -549,27 +587,27 @@ class FileStore(AbstractStore):
         else:
             return "%s" % tag_value
 
-    def log_param(self, run_uuid, param):
-        _validate_run_id(run_uuid)
+    def log_param(self, run_id, param):
+        _validate_run_id(run_id)
         _validate_param_name(param.key)
-        run = self.get_run(run_uuid)
+        run = self.get_run(run_id)
         check_run_is_active(run.info)
-        param_path = self._get_param_path(run.info.experiment_id, run_uuid, param.key)
+        param_path = self._get_param_path(run.info.experiment_id, run_id, param.key)
         make_containing_dirs(param_path)
         write_to(param_path, self._writeable_value(param.value))
 
-    def set_tag(self, run_uuid, tag):
-        _validate_run_id(run_uuid)
+    def set_tag(self, run_id, tag):
+        _validate_run_id(run_id)
         _validate_tag_name(tag.key)
-        run = self.get_run(run_uuid)
+        run = self.get_run(run_id)
         check_run_is_active(run.info)
-        tag_path = self._get_tag_path(run.info.experiment_id, run_uuid, tag.key)
+        tag_path = self._get_tag_path(run.info.experiment_id, run_id, tag.key)
         make_containing_dirs(tag_path)
         # Don't add trailing newline
         write_to(tag_path, self._writeable_value(tag.value))
 
     def _overwrite_run_info(self, run_info):
-        run_dir = self._get_run_dir(run_info.experiment_id, run_info.run_uuid)
+        run_dir = self._get_run_dir(run_info.experiment_id, run_info.run_id)
         run_info_dict = _make_persisted_run_info_dict(run_info)
         write_yaml(run_dir, FileStore.META_DATA_FILE_NAME, run_info_dict, overwrite=True)
 

@@ -4,8 +4,9 @@ import mock
 import numpy
 import pytest
 
-from mlflow.utils.rest_utils import NumpyEncoder, http_request, http_request_safe,\
+from mlflow.utils.rest_utils import http_request, http_request_safe,\
     MlflowHostCreds, _DEFAULT_HEADERS
+from mlflow.pyfunc.scoring_server import NumpyEncoder
 from mlflow.exceptions import MlflowException, RestException
 
 
@@ -116,6 +117,9 @@ def test_numpy_encoder():
 
 
 def test_numpy_encoder_fail():
+    if not hasattr(numpy, "float128"):
+        pytest.skip("numpy on exit"
+                    "this platform has no float128")
     test_number = numpy.float128
     with pytest.raises(TypeError):
         ne = NumpyEncoder()

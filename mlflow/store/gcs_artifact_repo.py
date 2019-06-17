@@ -5,6 +5,7 @@ from six.moves import urllib
 
 from mlflow.entities import FileInfo
 from mlflow.store.artifact_repo import ArtifactRepository
+from mlflow.utils.file_utils import relative_path_to_artifact_path
 
 
 class GCSArtifactRepository(ArtifactRepository):
@@ -55,7 +56,12 @@ class GCSArtifactRepository(ArtifactRepository):
         for (root, _, filenames) in os.walk(local_dir):
             upload_path = dest_path
             if root != local_dir:
+<<<<<<< HEAD
                 rel_path = os.path.relpath(local_dir, root)
+=======
+                rel_path = os.path.relpath(root, local_dir)
+                rel_path = relative_path_to_artifact_path(rel_path)
+>>>>>>> upstream/master
                 upload_path = posixpath.join(dest_path, rel_path)
             for f in filenames:
                 path = posixpath.join(upload_path, f)
