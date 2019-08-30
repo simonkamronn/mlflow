@@ -1,3 +1,5 @@
+import base64
+import json
 import sqlparse
 from sqlparse.sql import Identifier, Token, Comparison, Statement
 from sqlparse.tokens import Token as TokenType
@@ -6,13 +8,16 @@ from mlflow.entities import RunInfo
 from mlflow.exceptions import MlflowException
 from mlflow.protos.databricks_pb2 import INVALID_PARAMETER_VALUE
 
+import math
+
 
 class SearchUtils(object):
     VALID_METRIC_COMPARATORS = set(['>', '>=', '!=', '=', '<', '<='])
     VALID_PARAM_COMPARATORS = set(['!=', '='])
     VALID_TAG_COMPARATORS = set(['!=', '='])
     VALID_STRING_ATTRIBUTE_COMPARATORS = set(['!=', '='])
-    VALID_ATTRIBUTE_KEYS = set(RunInfo.get_searchable_attributes())
+    VALID_SEARCH_ATTRIBUTE_KEYS = set(RunInfo.get_searchable_attributes())
+    VALID_ORDER_BY_ATTRIBUTE_KEYS = set(RunInfo.get_orderable_attributes())
     _METRIC_IDENTIFIER = "metric"
     _ALTERNATE_METRIC_IDENTIFIERS = set(["metrics"])
     _PARAM_IDENTIFIER = "parameter"
@@ -82,7 +87,7 @@ class SearchUtils(object):
             return entity_type
 
     @classmethod
-    def _get_identifier(cls, identifier):
+    def _get_identifier(cls, identifier, valid_attributes):
         try:
             entity_type, key = identifier.split(".", 1)
         except ValueError:
@@ -92,9 +97,9 @@ class SearchUtils(object):
                                   error_code=INVALID_PARAMETER_VALUE)
         identifier = cls._valid_entity_type(entity_type)
         key = cls._trim_backticks(cls._strip_quotes(key))
-        if identifier == cls._ATTRIBUTE_IDENTIFIER and key not in cls.VALID_ATTRIBUTE_KEYS:
+        if identifier == cls._ATTRIBUTE_IDENTIFIER and key not in valid_attributes:
             raise MlflowException("Invalid attribute key '{}' specified. Valid keys "
-                                  " are '{}'".format(key, cls.VALID_ATTRIBUTE_KEYS))
+                                  " are '{}'".format(key, valid_attributes))
         return {"type": identifier, "key": key}
 
     @classmethod
@@ -151,7 +156,7 @@ class SearchUtils(object):
     def _get_comparison(cls, comparison):
         stripped_comparison = [token for token in comparison.tokens if not token.is_whitespace]
         cls._validate_comparison(stripped_comparison)
-        comp = cls._get_identifier(stripped_comparison[0].value)
+        comp = cls._get_identifier(stripped_comparison[0].value, cls.VALID_SEARCH_ATTRIBUTE_KEYS)
         comp["comparator"] = stripped_comparison[1].value
         comp["value"] = cls._get_value(comp.get("type"), stripped_comparison[2])
         return comp
@@ -255,6 +260,7 @@ class SearchUtils(object):
 
         def run_matches(run):
             return all([cls._does_run_match_clause(run, s) for s in parsed])
+
         return [run for run in runs if run_matches(run)]
 
     @classmethod
@@ -280,7 +286,7 @@ class SearchUtils(object):
             token_value = token_value[0:-len(" desc")]
         elif token_value.lower().endswith(" asc"):
             token_value = token_value[0:-len(" asc")]
-        identifier = cls._get_identifier(token_value.strip())
+        identifier = cls._get_identifier(token_value.strip(), cls.VALID_ORDER_BY_ATTRIBUTE_KEYS)
         return (identifier["type"], identifier["key"], is_ascending)
 
     @classmethod
@@ -300,9 +306,11 @@ class SearchUtils(object):
                                   error_code=INVALID_PARAMETER_VALUE)
 
         # Return a key such that None values are always at the end.
+        is_null_or_nan = sort_value is None or (isinstance(sort_value, float)
+                                                and math.isnan(sort_value))
         if ascending:
-            return (sort_value is None, sort_value)
-        return (sort_value is not None, sort_value)
+            return (is_null_or_nan, sort_value)
+        return (not is_null_or_nan, sort_value)
 
     @classmethod
     def sort(cls, runs, order_by_list):
@@ -321,3 +329,58 @@ class SearchUtils(object):
                           key=lambda run: cls._get_value_for_sort(run, key_type, key, ascending),
                           reverse=not ascending)
         return runs
+
+    @classmethod
+    def _parse_start_offset_from_page_token(cls, page_token):
+        # Note: the page_token is expected to be a base64-encoded JSON that looks like
+        # { "offset": xxx }. However, this format is not stable, so it should not be
+        # relied upon outside of this method.
+        if not page_token:
+            return 0
+
+        try:
+            decoded_token = base64.b64decode(page_token)
+        except TypeError:
+            raise MlflowException("Invalid page token, could not base64-decode",
+                                  error_code=INVALID_PARAMETER_VALUE)
+        except base64.binascii.Error:
+            raise MlflowException("Invalid page token, could not base64-decode",
+                                  error_code=INVALID_PARAMETER_VALUE)
+
+        try:
+            parsed_token = json.loads(decoded_token)
+        except ValueError:
+            raise MlflowException("Invalid page token, decoded value=%s" % decoded_token,
+                                  error_code=INVALID_PARAMETER_VALUE)
+
+        offset_str = parsed_token.get("offset")
+        if not offset_str:
+            raise MlflowException("Invalid page token, parsed value=%s" % parsed_token,
+                                  error_code=INVALID_PARAMETER_VALUE)
+
+        try:
+            offset = int(offset_str)
+        except ValueError:
+            raise MlflowException("Invalid page token, not stringable %s" % offset_str,
+                                  error_code=INVALID_PARAMETER_VALUE)
+
+        return offset
+
+    @classmethod
+    def _create_page_token(cls, offset):
+        return base64.b64encode(json.dumps({"offset": offset}).encode("utf-8"))
+
+    @classmethod
+    def paginate(cls, runs, page_token, max_results):
+        """Paginates a set of runs based on an offset encoded into the page_token and a max
+        results limit. Returns a pair containing the set of paginated runs, followed by
+        an optional next_page_token if there are further results that need to be returned.
+        """
+        start_offset = cls._parse_start_offset_from_page_token(page_token)
+        final_offset = start_offset + max_results
+
+        paginated_runs = runs[start_offset:final_offset]
+        next_page_token = None
+        if final_offset < len(runs):
+            next_page_token = cls._create_page_token(final_offset)
+        return (paginated_runs, next_page_token)
